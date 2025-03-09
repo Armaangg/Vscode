@@ -2,12 +2,16 @@ import requests
 import json
 import time
 from datetime import datetime
+import pytz
 
 # Discord Webhook URL
 webhook_url = "https://discord.com/api/webhooks/1348251353176211466/aJuTBKtxqOUCbHqOTamKZsuP4EmWDofZqq9o9FFZvbyuczL5JwhZHmBcAIc4SKKA9Z3b"
 
 # File to store data
 data_file = "status_data.json"
+
+# Indian timezone
+tz = pytz.timezone("Asia/Kolkata")
 
 # Load existing data or set defaults
 try:
@@ -53,8 +57,8 @@ while True:
         color = 15158332  # Red
         status_text = "🔴 Offline"
 
-    # Current timestamp
-    last_updated = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    # Current timestamp in IST
+    last_updated = datetime.now(tz).strftime("%Y-%m-%d %I:%M:%S %p")
 
     # Create embed content
     embed = {
@@ -65,12 +69,12 @@ while True:
                 {"name": "Uptime", "value": f"{data['uptime']} seconds", "inline": True},
                 {"name": "Downtime", "value": f"{data['downtime']} seconds", "inline": True},
                 {"name": "Status", "value": status_text, "inline": True},
-                {"name": "Last Updated", "value": last_updated, "inline": False}
+                {"name": "Last Updated (IST)", "value": last_updated, "inline": False}
             ]
         }]
     }
 
-    # Send or edit message
+    # Send or edit the message only once
     if data["message_id"] is None:
         response = send_message(embed)
         if "id" in response:
