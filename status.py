@@ -1,7 +1,7 @@
 import requests
 import time
 import pytz
-from datetime import datetime
+from datetime import datetime, timedelta
 from flask import Flask
 
 app = Flask(__name__)
@@ -12,6 +12,13 @@ API_URL = 'http://fi1.bot-hosting.net:6957/'
 
 uptime = 0
 downtime = 0
+
+def format_time(seconds):
+    td = timedelta(seconds=seconds)
+    days = td.days
+    hours, remainder = divmod(td.seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    return f"{days}d {hours}h {minutes}m {seconds}s"
 
 def edit_message(embed):
     response = requests.patch(f"{WEBHOOK_URL}/messages/{MESSAGE_ID}", json={"embeds": [embed]})
@@ -24,8 +31,8 @@ def build_embed(status):
         "title": "API STATUS",
         "color": color,
         "fields": [
-            {"name": "Uptime", "value": f"{uptime} seconds", "inline": True},
-            {"name": "Downtime", "value": f"{downtime} seconds", "inline": True},
+            {"name": "Uptime", "value": format_time(uptime), "inline": True},
+            {"name": "Downtime", "value": format_time(downtime), "inline": True},
             {"name": "Status", "value": status, "inline": True},
             {"name": "Last Updated", "value": now, "inline": False}
         ]
