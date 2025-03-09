@@ -6,7 +6,7 @@ from flask import Flask
 
 app = Flask(__name__)
 
-WEBHOOK_URL = 'YOUR_DISCORD_WEBHOOK_URL'
+WEBHOOK_URL = 'https://discord.com/api/webhooks/1348251353176211466/aJuTBKtxqOUCbHqOTamKZsuP4EmWDofZqq9o9FFZvbyuczL5JwhZHmBcAIc4SKKA9Z3b'
 API_URL = 'http://fi1.bot-hosting.net:6957/'
 
 status_message_id = None
