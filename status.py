@@ -73,7 +73,7 @@ def home():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
- from http.server import SimpleHTTPRequestHandler, HTTPServer
+from http.server import SimpleHTTPRequestHandler, HTTPServer
 
 class MyHandler(SimpleHTTPRequestHandler):
     def do_GET(self):
