@@ -1,8 +1,7 @@
 import requests
 import json
 import time
-from datetime import datetime
-import pytz
+from datetime import datetime, timedelta, timezone
 
 # Discord Webhook URL
 webhook_url = "https://discord.com/api/webhooks/1348251353176211466/aJuTBKtxqOUCbHqOTamKZsuP4EmWDofZqq9o9FFZvbyuczL5JwhZHmBcAIc4SKKA9Z3b"
@@ -10,8 +9,8 @@ webhook_url = "https://discord.com/api/webhooks/1348251353176211466/aJuTBKtxqOUC
 # File to store data
 data_file = "status_data.json"
 
-# Indian timezone
-tz = pytz.timezone("Asia/Kolkata")
+# Set timezone to IST (Indian Standard Time)
+IST = timezone(timedelta(hours=5, minutes=30))
 
 # Load existing data or set defaults
 try:
@@ -58,7 +57,7 @@ while True:
         status_text = "🔴 Offline"
 
     # Current timestamp in IST
-    last_updated = datetime.now(tz).strftime("%Y-%m-%d %I:%M:%S %p")
+    last_updated = datetime.now(IST).strftime("%Y-%m-%d %I:%M:%S %p")
 
     # Create embed content
     embed = {
