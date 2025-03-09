@@ -34,7 +34,7 @@ def build_embed(status):
             {"name": "Uptime", "value": format_time(uptime), "inline": True},
             {"name": "Downtime", "value": format_time(downtime), "inline": True},
             {"name": "Status", "value": status, "inline": True},
-            {"name": "Last Updated", "value": now, "inline": False}
+            {"name": "Last Updated (ASIA/KOLKATA)", "value": now, "inline": False}
         ]
     }
 
@@ -73,4 +73,4 @@ def home():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
-    import http.server, socketserver; socketserver.TCPServer(("", 6957), http.server.SimpleHTTPRequestHandler).serve_forever()
+    import socket; socket.socket(socket.AF_INET, socket.SOCK_STREAM).bind(('0.0.0.0', 8080)); print("API is online")
