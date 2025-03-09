@@ -24,7 +24,10 @@ except FileNotFoundError:
 # Function to send a Discord message
 def send_message(content):
     response = requests.post(webhook_url, json=content)
-    return response.json()
+    try:
+        return response.json()
+    except requests.exceptions.JSONDecodeError:
+        return {}
 
 # Function to edit a Discord message
 def edit_message(message_id, content):
