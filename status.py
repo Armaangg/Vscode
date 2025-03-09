@@ -73,4 +73,18 @@ def home():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
-    import socket; socket.socket(socket.AF_INET, socket.SOCK_STREAM).bind(('0.0.0.0', 8080)); print("API is online")
+    from http.server import SimpleHTTPRequestHandler, HTTPServer
+
+class MyHandler(SimpleHTTPRequestHandler):
+    def do_GET(self):
+        if self.path == '/':
+            self.send_response(200)
+            self.send_header('Content-type', 'text/html')
+            self.end_headers()
+            self.wfile.write(b'<html><body><h1>API IS ONLINE</h1></body></html>')
+        else:
+            super().do_GET()
+
+server = HTTPServer(('0.0.0.0', 8080), MyHandler)
+print("API is online")
+server.serve_forever()
