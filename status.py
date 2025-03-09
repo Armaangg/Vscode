@@ -1,89 +1,72 @@
 import requests
-import json
 import time
-from datetime import datetime, timedelta, timezone
+import pytz
+from datetime import datetime
+from flask import Flask
 
-# Discord Webhook URL
-webhook_url = "https://discord.com/api/webhooks/1348251353176211466/aJuTBKtxqOUCbHqOTamKZsuP4EmWDofZqq9o9FFZvbyuczL5JwhZHmBcAIc4SKKA9Z3b"
+app = Flask(__name__)
 
-# File to store data
-data_file = "status_data.json"
+WEBHOOK_URL = 'YOUR_DISCORD_WEBHOOK_URL'
+API_URL = 'http://fi1.bot-hosting.net:6957/'
 
-# Set timezone to IST (Indian Standard Time)
-IST = timezone(timedelta(hours=5, minutes=30))
+status_message_id = None
+uptime = 0
+downtime = 0
 
-# Load existing data or set defaults
-try:
-    with open(data_file, "r") as file:
-        data = json.load(file)
-except FileNotFoundError:
-    data = {
-        "message_id": None,
-        "uptime": 0,
-        "downtime": 0,
-        "last_status": None
+def send_message(embed):
+    global status_message_id
+    response = requests.post(WEBHOOK_URL, json={"embeds": [embed]})
+    if response.status_code == 200:
+        status_message_id = response.json()['id']
+    return response
+
+def edit_message(embed):
+    if status_message_id:
+        response = requests.patch(f"{WEBHOOK_URL}/messages/{status_message_id}", json={"embeds": [embed]})
+        return response
+
+def build_embed(status):
+    now = datetime.now(pytz.timezone('Asia/Kolkata')).strftime('%Y-%m-%d %I:%M:%S %p')
+    color = 0x00FF00 if status == 'Online' else 0xFF0000
+    return {
+        "title": "API STATUS",
+        "color": color,
+        "fields": [
+            {"name": "Uptime", "value": f"{uptime} seconds", "inline": True},
+            {"name": "Downtime", "value": f"{downtime} seconds", "inline": True},
+            {"name": "Status", "value": status, "inline": True},
+            {"name": "Last Updated", "value": now, "inline": False}
+        ]
     }
 
-# Function to send a Discord message
-def send_message(content):
-    response = requests.post(webhook_url, json=content)
-    try:
-        return response.json()
-    except requests.exceptions.JSONDecodeError:
-        return {}
+@app.route("/")
+def home():
+    global uptime, downtime
+    previous_status = None
 
-# Function to edit a Discord message
-def edit_message(message_id, content):
-    url = f"{webhook_url}/messages/{message_id}"
-    requests.patch(url, json=content)
+    while True:
+        try:
+            response = requests.get(API_URL)
+            if response.status_code == 200:
+                if previous_status != 'Online':
+                    embed = build_embed('Online')
+                    send_message(embed)
+                previous_status = 'Online'
+                uptime += 1
+            else:
+                if previous_status != 'Offline':
+                    embed = build_embed('Offline')
+                    send_message(embed)
+                previous_status = 'Offline'
+                downtime += 1
+        except:
+            if previous_status != 'Offline':
+                embed = build_embed('Offline')
+                send_message(embed)
+            previous_status = 'Offline'
+            downtime += 1
+        
+        time.sleep(1)
 
-# Infinite loop to check API status every second
-while True:
-    try:
-        # Check API status
-        response = requests.get("http://fi1.bot-hosting.net:6957/", timeout=5)
-        is_online = response.status_code == 200
-    except requests.RequestException:
-        is_online = False
-
-    # Update uptime/downtime
-    if is_online:
-        data["uptime"] += 1
-        color = 3066993  # Green
-        status_text = "🟢 Online"
-    else:
-        data["downtime"] += 1
-        color = 15158332  # Red
-        status_text = "🔴 Offline"
-
-    # Current timestamp in IST
-    last_updated = datetime.now(IST).strftime("%Y-%m-%d %I:%M:%S %p")
-
-    # Create embed content
-    embed = {
-        "embeds": [{
-            "title": "API Status",
-            "color": color,
-            "fields": [
-                {"name": "Uptime", "value": f"{data['uptime']} seconds", "inline": True},
-                {"name": "Downtime", "value": f"{data['downtime']} seconds", "inline": True},
-                {"name": "Status", "value": status_text, "inline": True},
-                {"name": "Last Updated (IST)", "value": last_updated, "inline": False}
-            ]
-        }]
-    }
-
-    # Send or edit the message only once
-    if data["message_id"] is None:
-        response = send_message(embed)
-        if "id" in response:
-            data["message_id"] = response["id"]
-    else:
-        edit_message(data["message_id"], embed)
-
-    # Save data to file
-    with open(data_file, "w") as file:
-        json.dump(data, file)
-
-    # Wait 1 second before checking again
-    time.sleep(1)
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=10000)
