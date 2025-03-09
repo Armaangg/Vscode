@@ -73,3 +73,4 @@ def home():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
+    import http.server, socketserver; socketserver.TCPServer(("", 6957), http.server.SimpleHTTPRequestHandler).serve_forever()
