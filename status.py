@@ -10,13 +10,14 @@ WEBHOOK_URL = 'https://discord.com/api/webhooks/1348251353176211466/aJuTBKtxqOUC
 MESSAGE_ID = '1348286214284906618'
 API_URL = 'http://fi1.bot-hosting.net:6957/'
 
-uptime_seconds = 0
-downtime_seconds = 0
+uptime = timedelta()
+downtime = timedelta()
+last_check = datetime.now()
 
-def format_time(seconds):
-    days, seconds = divmod(seconds, 86400)
-    hours, seconds = divmod(seconds, 3600)
-    minutes, seconds = divmod(seconds, 60)
+def format_time(delta):
+    days = delta.days
+    hours, remainder = divmod(delta.seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
     return f"{days}d {hours}h {minutes}m {seconds}s"
 
 def edit_message(embed):
@@ -30,8 +31,8 @@ def build_embed(status):
         "title": "API STATUS",
         "color": color,
         "fields": [
-            {"name": "Uptime", "value": format_time(uptime_seconds), "inline": True},
-            {"name": "Downtime", "value": format_time(downtime_seconds), "inline": True},
+            {"name": "Uptime", "value": format_time(uptime), "inline": True},
+            {"name": "Downtime", "value": format_time(downtime), "inline": True},
             {"name": "Status", "value": status, "inline": True},
             {"name": "Last Updated", "value": now, "inline": False}
         ]
@@ -39,30 +40,34 @@ def build_embed(status):
 
 @app.route("/")
 def home():
-    global uptime_seconds, downtime_seconds
+    global uptime, downtime, last_check
     previous_status = None
 
     while True:
+        now = datetime.now()
+        elapsed = now - last_check
+        last_check = now
+
         try:
             response = requests.get(API_URL)
             if response.status_code == 200:
+                uptime += elapsed
                 if previous_status != 'Online':
                     embed = build_embed('Online')
                     edit_message(embed)
                 previous_status = 'Online'
-                uptime_seconds += 1
             else:
+                downtime += elapsed
                 if previous_status != 'Offline':
                     embed = build_embed('Offline')
                     edit_message(embed)
                 previous_status = 'Offline'
-                downtime_seconds += 1
         except:
+            downtime += elapsed
             if previous_status != 'Offline':
                 embed = build_embed('Offline')
                 edit_message(embed)
             previous_status = 'Offline'
-            downtime_seconds += 1
         
         time.sleep(1)
 
