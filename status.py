@@ -15,6 +15,7 @@ API_URL = 'http://fi1.bot-hosting.net:6957/'
 uptime = timedelta()
 downtime = timedelta()
 last_check = datetime.now()
+previous_status = None
 
 def format_time(delta):
     days = delta.days
@@ -23,11 +24,15 @@ def format_time(delta):
     return f"{days}d {hours}h {minutes}m {seconds}s"
 
 def edit_message(embed):
-    response = requests.patch(f"{WEBHOOK_URL}/messages/{MESSAGE_ID}", json={
-        "content": "API STATUS",  
-        "embeds": [embed]
-    })
-    return response
+    try:
+        response = requests.patch(f"{WEBHOOK_URL}/messages/{MESSAGE_ID}", json={
+            "content": "API STATUS",  
+            "embeds": [embed]
+        }, timeout=5)
+        if response.status_code != 200:
+            print(f"Failed to update message: {response.status_code}")
+    except Exception as e:
+        print(f"Failed to send request: {e}")
 
 def build_embed(status):
     now = datetime.now(pytz.timezone('Asia/Kolkata')).strftime('%Y-%m-%d %I:%M:%S %p')
@@ -44,7 +49,7 @@ def build_embed(status):
     }
 
 def monitor_api():
-    global uptime, downtime, last_check
+    global uptime, downtime, last_check, previous_status
 
     while True:
         now = datetime.now()
@@ -52,20 +57,35 @@ def monitor_api():
         last_check = now
 
         try:
-            response = requests.get(API_URL)
+            response = requests.get(API_URL, timeout=5)
             if response.status_code == 200:
+                if previous_status != 'Online':
+                    uptime = timedelta()  # Reset uptime when API goes online
+                    print("[+] API is now ONLINE. Downtime reset.")
                 uptime += elapsed
                 status = 'Online'
+                downtime = timedelta()  # Reset downtime when API goes online
             else:
+                if previous_status != 'Offline':
+                    downtime = timedelta()  # Reset downtime when API goes offline
+                    print("[-] API is now OFFLINE. Uptime reset.")
                 downtime += elapsed
                 status = 'Offline'
+                uptime = timedelta()  # Reset uptime when API goes offline
         except:
+            if previous_status != 'Offline':
+                downtime = timedelta()  # Reset downtime when API goes offline
+                print("[-] API is now OFFLINE. Uptime reset.")
             downtime += elapsed
             status = 'Offline'
-        
-        # Always update the message every second regardless of status
+            uptime = timedelta()  # Reset uptime when API goes offline
+
+        # Always update the message every second
         embed = build_embed(status)
         edit_message(embed)
+        previous_status = status
+
+        # Prevent Discord rate-limiting by limiting to 1 request per second
         time.sleep(1)
 
 @app.route("/")
@@ -87,10 +107,19 @@ def run_http_server():
     print("Server running at http://localhost:8000")
     httpd.serve_forever()
 
+# Run the API monitor in a separate thread with auto-recovery
+def run_monitor():
+    while True:
+        try:
+            monitor_api()
+        except Exception as e:
+            print(f"Monitor crashed: {e}")
+            time.sleep(5)  # Wait 5 seconds and auto-restart
+
 # Run the API monitor in a separate thread
-threading.Thread(target=monitor_api, daemon=True).start()
+threading.Thread(target=run_monitor, daemon=True).start()
 
 # Run Flask and HTTP server concurrently
 threading.Thread(target=run_flask, daemon=True).start()
 run_http_server()
-    
+            
