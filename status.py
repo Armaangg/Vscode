@@ -23,7 +23,10 @@ def format_time(delta):
     return f"{days}d {hours}h {minutes}m {seconds}s"
 
 def edit_message(embed):
-    response = requests.patch(f"{WEBHOOK_URL}/messages/{MESSAGE_ID}", json={"embeds": [embed]})
+    response = requests.patch(f"{WEBHOOK_URL}/messages/{MESSAGE_ID}", json={
+        "content": "API STATUS",  
+        "embeds": [embed]
+    })
     return response
 
 def build_embed(status):
@@ -42,7 +45,6 @@ def build_embed(status):
 
 def monitor_api():
     global uptime, downtime, last_check
-    previous_status = None
 
     while True:
         now = datetime.now()
@@ -53,23 +55,17 @@ def monitor_api():
             response = requests.get(API_URL)
             if response.status_code == 200:
                 uptime += elapsed
-                if previous_status != 'Online':
-                    embed = build_embed('Online')
-                    edit_message(embed)
-                previous_status = 'Online'
+                status = 'Online'
             else:
                 downtime += elapsed
-                if previous_status != 'Offline':
-                    embed = build_embed('Offline')
-                    edit_message(embed)
-                previous_status = 'Offline'
+                status = 'Offline'
         except:
             downtime += elapsed
-            if previous_status != 'Offline':
-                embed = build_embed('Offline')
-                edit_message(embed)
-            previous_status = 'Offline'
+            status = 'Offline'
         
+        # Always update the message every second regardless of status
+        embed = build_embed(status)
+        edit_message(embed)
         time.sleep(1)
 
 @app.route("/")
@@ -97,3 +93,4 @@ threading.Thread(target=monitor_api, daemon=True).start()
 # Run Flask and HTTP server concurrently
 threading.Thread(target=run_flask, daemon=True).start()
 run_http_server()
+    
