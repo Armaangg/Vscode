@@ -74,21 +74,14 @@ def home():
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
 from http.server import SimpleHTTPRequestHandler, HTTPServer
-import os
 
 class MyHandler(SimpleHTTPRequestHandler):
     def do_GET(self):
         if self.path == '/':
-            # Serve the index.html file
             self.path = '/index.html'
         return super().do_GET()
 
-# Set the directory where the index.html is located
-os.chdir(os.path.dirname(os.path.abspath(__file__)))
-
-# Change 8080 to the desired port if needed
-server = HTTPServer(('0.0.0.0', 8080), MyHandler)
-print("Server running at http://localhost:8080/")
-
-# Run the server
-server.serve_forever()
+server_address = ('', 8000)
+httpd = HTTPServer(server_address, MyHandler)
+print("Server running at http://localhost:8000")
+httpd.serve_forever()
